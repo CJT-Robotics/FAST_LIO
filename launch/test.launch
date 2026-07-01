@@ -1,0 +1,36 @@
+<launch>
+  <node pkg="nodelet" type="nodelet" name="pcl_manager" args="manager" output="screen"/>
+  <node pkg="nodelet" type="nodelet" name="voxel_grid_filter" args="load pcl/VoxelGrid pcl_manager">
+    <remap from="~input" to="/cloud_registered_body"/>
+    <remap from="~output" to="/cloud_filtered"/>
+    <param name="leaf_size" value="0.05"/>
+  </node>
+
+  <!-- Static transform linking your robot frame to the Orbbec Astra camera link -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_camera" args="0.1 0 0.2 0 0 0 base_link camera_link" />
+
+    <group ns="rtabmap">
+    <node name="rtabmap" pkg="rtabmap_slam" type="rtabmap" output="screen" args="--delete_db_on_start">
+      <!-- TARGET ROBOT FRAME -->
+      <param name="frame_id" type="string" value="base_link"/>
+      
+      <!-- CRITICAL FIX: Stop RTAB-Map from publishing 'map' transform loop -->
+      <param name="publish_tf" type="bool" value="false"/>
+      
+      <param name="subscribe_depth" type="bool" value="true"/>
+      <param name="subscribe_scan_cloud" type="bool" value="true"/>
+      <param name="approx_sync" type="bool" value="true"/>
+      <param name="subscribe_odom_info" type="bool" value="false"/>
+      
+      <remap from="rgb/image" to="/cjt/camera/color/image_raw"/>
+      <remap from="depth/image" to="/cjt/camera/depth/image_raw"/>
+      <remap from="rgb/camera_info" to="/cjt/camera/color/camera_info"/>
+      <remap from="scan_cloud" to="/cloud_filtered"/>
+      <remap from="odom" to="/odometry/base_footprint"/> 
+      
+      <param name="Grid/FromDepth" type="string" value="false"/>
+      <param name="Reg/Strategy" type="string" value="1"/> 
+    </node>
+  </group>
+
+</launch>
